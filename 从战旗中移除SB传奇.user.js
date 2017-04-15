@@ -16,8 +16,78 @@
 
 })();
 
+var blockList = [];
+
+function addToList(id){
+    if(blockList.indexOf(id) == -1){
+        blockList.push(id);
+    }
+}
+
+function exists(id){
+    return blockList.indexOf(id) != -1;
+}
+
+function saveList(){
+    var str = JSON.stringify(blockList);
+    $.cookie("bls",str);
+}
+
+function loadList(){
+    var str = $.cookie("bls");
+    if(str){
+        blockList = JSON.parse(str);
+        console.info("load list " + blockList.length);
+    }
+}
+
+loadList();
+
 mo = new MutationObserver(function(allmutations) {
-    $('li  span:contains("传奇")').closest('li').remove();
+    //$('li  span:contains("传奇")').closest('li').remove();
+    $.each(allmutations, function( index, record ) {
+        $.each(record.addedNodes, function(ind, nd){
+            if(nd.localName === "li")      {
+                var tmp = $(nd);
+                var id =tmp.data('room-id');
+                var name = tmp.find("span.name").text();
+                if(exists(id)){
+                    console.info("block ["+id+"] " + name);
+                    tmp.remove();
+                }else{
+                    if(tmp.find('span:contains("传奇")').length > 0){
+                        tmp.remove();
+                        console.info("block " + name);
+                    }
+                }
+
+
+                // register event
+                var spanViews = tmp.find("span.views");
+                spanViews.click(function(e){
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    console.info("add to block "+id);
+                    addToList(id);
+                    saveList();
+                    tmp.remove();
+                });
+
+                spanViews.hover(
+                    function(){
+                        var txt =tmp.find("span.views span.dv").text();
+                        tmp.data('v-text',txt);
+                        tmp.find("span.views span.dv").text("JB88");
+                    },
+                    function(){
+                        var txt = tmp.data('v-text');
+                        tmp.find("span.views span.dv").text(txt);
+                    });
+                spanViews.css("cursor","pointer");
+            }
+        });
+    });
 });
+
 var targets = document.body;
 mo.observe(targets, {'childList': true,'characterData':true,'subtree': true});
